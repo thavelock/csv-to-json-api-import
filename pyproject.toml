@@ -1,13 +1,13 @@
 [tool.poetry]
-name = "name-of-tool" # REPLACE name-of-tool
+name = "csv-to-json-api-import"
 version = "0.1.0"
 description = ""
 authors = ["Troy Havelock <troy.havelock@snyk.io>"]
 readme = "README.md"
-packages = [{include = "name_of_tool"}] # REPLACE name_of_tool
+packages = [{include = "csv_to_json_api_import"}]
 
 [tool.poetry.scripts]
-name-of-tool = "name_of_tool.main:run" # REPLACE name-of-tool & name_of_tool
+csv-to-json-api-import = "csv_to_json_api_import.main:run"
 
 [tool.poetry.dependencies]
 python = "^3.11"

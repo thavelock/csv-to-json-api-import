@@ -2,3 +2,5 @@ dist
 .vscode
 *__pycache__
 .dccache
+new-orgs.json
+snyk-logs
