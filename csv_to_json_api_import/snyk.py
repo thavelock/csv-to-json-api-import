@@ -107,9 +107,8 @@ def get_organization_id_from_name(snyk_token, group_id, org_name, verbose=False)
             headers=headers,
             timeout=SNYK_API_TIMEOUT_DEFAULT)
 
-        response_json = json.loads(response.content)
-
         if response.status_code == 200:
+            response_json = json.loads(response.content)
             if (len(response_json['data']) > 0):
                 org_id = response_json['data'][0]['id']
             else:

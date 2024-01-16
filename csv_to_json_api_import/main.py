@@ -176,17 +176,20 @@ def migrate_projects(
                     if org_id is not None:
                         print(f"Org ID: {org_id}, Org Name: '{org_name}'")
 
-                    num_errors = 0
-                    # move all projects to destination org
-                    for project_id in project_ids:
-                        if not snyk.move_project_to_org(snyk_token, source_org, org_id, project_id, verbose=state['verbose'], dry_run=dry_run):
-                            num_errors += 1
-                        else:
-                            projects_migrated_total += 1
+                        num_errors = 0
+                        # move all projects to destination org
+                        for project_id in project_ids:
+                            if not snyk.move_project_to_org(snyk_token, source_org, org_id, project_id, verbose=state['verbose'], dry_run=dry_run):
+                                num_errors += 1
+                            else:
+                                projects_migrated_total += 1
 
-                    # clean up empty project
-                    if num_errors == 0 and not dry_run:
-                        snyk.delete_target(snyk_token, source_org, target_id, verbose=state['verbose'])
+                        # clean up empty project
+                        if num_errors == 0 and not dry_run:
+                            snyk.delete_target(snyk_token, source_org, target_id, verbose=state['verbose'])
+
+                    else:
+                        print(f"Could not retrieve Org ID for: {org_name}")
 
             else:
                 print(f"Could not get Target ID for: {row[COL_TARGET_NAME]}")
