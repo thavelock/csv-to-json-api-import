@@ -144,29 +144,41 @@ def move_project_to_org(snyk_token, source_org, target_org, project_id, verbose=
 
     if not dry_run:
         while True:
-            response = requests.request(
-                'PUT',
-                url,
-                headers=headers,
-                data=payload,
-                timeout=SNYK_API_TIMEOUT_DEFAULT)
 
-            response_json = json.loads(response.content)
+            try:
+                response = requests.request(
+                    'PUT',
+                    url,
+                    headers=headers,
+                    data=payload,
+                    timeout=SNYK_API_TIMEOUT_DEFAULT)
 
-            if response.status_code == 200:
-                print(f"Successfully migrated project: {project_id}")
-                return True
-            elif response.status_code == 429:
-                print(f"To many API calls, backing off for {SNYK_API_RATE_LIMIT_BACKOFF_SECONDS} seconds")
-                time.sleep(SNYK_API_RATE_LIMIT_BACKOFF_SECONDS)
-                retry += 1
-                if retry > MAX_RETRIES:
+                response_json = json.loads(response.content)
+
+                if response.status_code == 200:
+                    print(f"Successfully migrated project: {project_id}")
+                    return True
+                elif response.status_code == 429:
+                    print(f"To many API calls, backing off for {SNYK_API_RATE_LIMIT_BACKOFF_SECONDS} seconds")
+                    time.sleep(SNYK_API_RATE_LIMIT_BACKOFF_SECONDS)
+                    retry += 1
+                    if retry > MAX_RETRIES:
+                        break
+                else:
+                    print(f"Could not complete request, reason: {response.status_code}")
+                    if verbose:
+                        print(response_json)
                     break
-            else:
-                print(f"Could not complete request, reason: {response.status_code}")
-                if verbose:
-                    print(response_json)
-                break
+
+            except requests.ConnectTimeout:
+                print(f"ERROR: ConnectionTimeout, moving on to next project")
+                return False
+            except requests.ReadTimeout:
+                print(f"ERROR ReadTimeout, moving on to next project")
+                return False
+            except requests.Timeout:
+                print(f"ERROR: Timeout, moving on to next project")
+                return False
 
     return False
 
