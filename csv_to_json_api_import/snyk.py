@@ -150,7 +150,6 @@ def move_project_to_org(snyk_token, source_org, target_org, project_id, verbose=
                     timeout=SNYK_API_TIMEOUT_DEFAULT)
 
                 if response.status_code == 200:
-                    response_json = json.loads(response.content)
                     print(f"Successfully migrated project: {project_id}")
                     return True
                 elif response.status_code == 429:
