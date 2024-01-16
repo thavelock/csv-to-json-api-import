@@ -27,9 +27,8 @@ def get_target_id_from_name(snyk_token, org_id, target_name, verbose=False):
             headers=headers,
             timeout=SNYK_API_TIMEOUT_DEFAULT)
 
-        response_json = json.loads(response.content)
-
         if response.status_code == 200:
+            response_json = json.loads(response.content)
             if (len(response_json['data']) > 0):
                 target_id = response_json['data'][0]['id']
             else:
@@ -43,8 +42,6 @@ def get_target_id_from_name(snyk_token, org_id, target_name, verbose=False):
                 break
         else:
             print(f"Could not complete request {target_name}, reason: {response.status_code}")
-            if verbose:
-                print(response_json)
             break
 
     return target_id
@@ -66,9 +63,8 @@ def get_projects_from_target(snyk_token, org_id, target_id, verbose=False):
             headers=headers,
             timeout=SNYK_API_TIMEOUT_DEFAULT)
 
-        response_json = json.loads(response.content)
-
         if response.status_code == 200:
+            response_json = json.loads(response.content)
             for project in response_json['data']:
                 project_ids.append(project['id'])
 
@@ -153,9 +149,8 @@ def move_project_to_org(snyk_token, source_org, target_org, project_id, verbose=
                     data=payload,
                     timeout=SNYK_API_TIMEOUT_DEFAULT)
 
-                response_json = json.loads(response.content)
-
                 if response.status_code == 200:
+                    response_json = json.loads(response.content)
                     print(f"Successfully migrated project: {project_id}")
                     return True
                 elif response.status_code == 429:
@@ -166,8 +161,6 @@ def move_project_to_org(snyk_token, source_org, target_org, project_id, verbose=
                         break
                 else:
                     print(f"Could not complete request, reason: {response.status_code}")
-                    if verbose:
-                        print(response_json)
                     break
 
             except requests.ConnectTimeout:
@@ -208,8 +201,5 @@ def delete_target(snyk_token, org_id, target_id, verbose=False):
             if retry > MAX_RETRIES:
                 break
         else:
-            response_json = json.loads(response.content)
             print(f"Could not remove target {target_id}, reason: {response.status_code}")
-            if verbose:
-                print(response_json)
             break
