@@ -128,6 +128,11 @@ def migrate_projects(
             typer.Option(
                 help='Path to CSV file that will be used to created JSON org structure',
                 envvar='CSV_PATH')],
+    skip_lines:
+        Annotated[
+            int,
+            typer.Option(
+                help='Number of lines to skip ahead in the csv file')] = 0,
     dry_run:
         Annotated[
             bool,
@@ -142,6 +147,11 @@ def migrate_projects(
 
         # skip the header
         next(csv_reader, None)
+
+        if skip_lines != 0:
+            print(f"Skipping ahead {skip_lines} lines")
+            for _ in range(skip_lines):
+                next(csv_reader, None)
 
         for row in csv_reader:
 
