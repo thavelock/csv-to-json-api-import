@@ -7,4 +7,4 @@ SNYK_REST_API_VERSION               = '2024-01-04~beta'
 SNYK_API_TIMEOUT_DEFAULT            = 300
 
 SNYK_API_RATE_LIMIT_BACKOFF_SECONDS = 65
-MAX_RETRIES                         = 3
+MAX_RETRIES                         = 5

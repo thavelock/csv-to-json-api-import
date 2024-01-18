@@ -140,7 +140,6 @@ def move_project_to_org(snyk_token, source_org, target_org, project_id, verbose=
 
     if not dry_run:
         while True:
-
             try:
                 response = requests.request(
                     'PUT',
@@ -149,28 +148,46 @@ def move_project_to_org(snyk_token, source_org, target_org, project_id, verbose=
                     data=payload,
                     timeout=SNYK_API_TIMEOUT_DEFAULT)
 
+            except requests.ConnectTimeout:
+                retry += 1
+                if retry > MAX_RETRIES:
+                    break
+                print("ERROR: ConnectionTimeout, trying again")
+            except requests.ReadTimeout:
+                retry += 1
+                if retry > MAX_RETRIES:
+                    break
+                print("ERROR ReadTimeout, trying again")
+            except requests.Timeout:
+                retry += 1
+                if retry > MAX_RETRIES:
+                    break
+                print("ERROR: Timeout, trying again")
+            else:
                 if response.status_code == 200:
                     print(f"Successfully migrated project: {project_id}")
                     return True
-                elif response.status_code == 429:
-                    print(f"To many API calls, backing off for {SNYK_API_RATE_LIMIT_BACKOFF_SECONDS} seconds")
-                    time.sleep(SNYK_API_RATE_LIMIT_BACKOFF_SECONDS)
+                elif response.status_code == 403:
                     retry += 1
                     if retry > MAX_RETRIES:
                         break
+                    time.sleep(5)
+                    print("Couldn't migrate project trying again")
+                elif response.status_code == 404:
+                    print(f"Project already moved: {project_id}")
+                    return True
+                elif response.status_code == 409:
+                    print("Project already exists in destination org")
+                    return True
+                elif response.status_code == 429:
+                    retry += 1
+                    if retry > MAX_RETRIES:
+                        break
+                    time.sleep(SNYK_API_RATE_LIMIT_BACKOFF_SECONDS)
+                    print(f"To many API calls, backing off for {SNYK_API_RATE_LIMIT_BACKOFF_SECONDS} seconds")
                 else:
                     print(f"Could not complete request, reason: {response.status_code}")
                     break
-
-            except requests.ConnectTimeout:
-                print(f"ERROR: ConnectionTimeout, moving on to next project")
-                return False
-            except requests.ReadTimeout:
-                print(f"ERROR ReadTimeout, moving on to next project")
-                return False
-            except requests.Timeout:
-                print(f"ERROR: Timeout, moving on to next project")
-                return False
 
     return False
 
@@ -184,21 +201,38 @@ def delete_target(snyk_token, org_id, target_id, verbose=False):
     url = f"{SNYK_REST_API_BASE_URL}/orgs/{org_id}/targets/{target_id}?version={SNYK_REST_API_VERSION}"
 
     while True:
-        response = requests.request(
-            'DELETE',
-            url,
-            headers=headers,
-            timeout=SNYK_API_TIMEOUT_DEFAULT)
+        try:
+            response = requests.request(
+                'DELETE',
+                url,
+                headers=headers,
+                timeout=SNYK_API_TIMEOUT_DEFAULT)
 
-        if response.status_code == 204:
-            print(f"Successfully removed target {target_id} from org {org_id}")
-            return True
-        elif response.status_code == 429:
-            print(f"To many API calls, backing off for {SNYK_API_RATE_LIMIT_BACKOFF_SECONDS} seconds")
-            time.sleep(SNYK_API_RATE_LIMIT_BACKOFF_SECONDS)
+        except requests.ConnectTimeout:
             retry += 1
             if retry > MAX_RETRIES:
                 break
+            print("ERROR: ConnectionTimeout, trying again")
+        except requests.ReadTimeout:
+            retry += 1
+            if retry > MAX_RETRIES:
+                break
+            print("ERROR ReadTimeout, trying again")
+        except requests.Timeout:
+            retry += 1
+            if retry > MAX_RETRIES:
+                break
+            print("ERROR: Timeout, trying again")
         else:
-            print(f"Could not remove target {target_id}, reason: {response.status_code}")
-            break
+            if response.status_code == 204:
+                print(f"Successfully removed target {target_id} from org {org_id}")
+                return True
+            elif response.status_code == 429:
+                print(f"To many API calls, backing off for {SNYK_API_RATE_LIMIT_BACKOFF_SECONDS} seconds")
+                time.sleep(SNYK_API_RATE_LIMIT_BACKOFF_SECONDS)
+                retry += 1
+                if retry > MAX_RETRIES:
+                    break
+            else:
+                print(f"Could not remove target {target_id}, reason: {response.status_code}")
+                break

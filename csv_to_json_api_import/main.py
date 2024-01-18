@@ -196,7 +196,8 @@ def migrate_projects(
 
                         # clean up empty project
                         if num_errors == 0 and not dry_run:
-                            snyk.delete_target(snyk_token, source_org, target_id, verbose=state['verbose'])
+                            if (len(snyk.get_projects_from_target(snyk_token, source_org, target_id)) == 0):
+                                snyk.delete_target(snyk_token, source_org, target_id, verbose=state['verbose'])
 
                     else:
                         print(f"Could not retrieve Org ID for: {org_name}")
