@@ -137,7 +137,12 @@ def migrate_projects(
         Annotated[
             bool,
             typer.Option(
-                help="Print move information only")] = False):
+                help="Print move information only")] = False,
+    output_csv_path:
+        Annotated[
+            str,
+            typer.Option(
+                help="File to output errored entries to")] = None):
 
     start_time = datetime.now()
     projects_migrated_total = 0
@@ -198,6 +203,16 @@ def migrate_projects(
                         if num_errors == 0 and not dry_run:
                             if (len(snyk.get_projects_from_target(snyk_token, source_org, target_id)) == 0):
                                 snyk.delete_target(snyk_token, source_org, target_id, verbose=state['verbose'])
+                            else:
+                                if (output_csv_path is not None):
+                                    with open(output_csv_path, 'a') as output_csv_file:
+                                        output_csv_writer = csv.writer(output_csv_file)
+                                        output_csv_writer.writerow(row)
+                        else:
+                            if (output_csv_path is not None):
+                                with open(output_csv_path, 'a') as output_csv_file:
+                                    output_csv_writer = csv.writer(output_csv_file)
+                                    output_csv_writer.writerow(row)
 
                     else:
                         print(f"Could not retrieve Org ID for: {org_name}")
