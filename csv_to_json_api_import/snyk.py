@@ -21,30 +21,112 @@ def get_target_id_from_name(snyk_token, org_id, target_name, verbose=False):
     url = f"{SNYK_REST_API_BASE_URL}/orgs/{org_id}/targets?version={SNYK_REST_API_VERSION}&displayName={requests.utils.quote(target_name, safe='')}"
 
     while True:
-        response = requests.request(
-            'GET',
-            url,
-            headers=headers,
-            timeout=SNYK_API_TIMEOUT_DEFAULT)
+        try:
+            response = requests.request(
+                'GET',
+                url,
+                headers=headers,
+                timeout=SNYK_API_TIMEOUT_DEFAULT)
 
-        if response.status_code == 200:
-            response_json = json.loads(response.content)
-            if (len(response_json['data']) > 0):
-                target_id = response_json['data'][0]['id']
-            else:
-                print(f"Did not find a target with name: {target_name}")
-            break
-        elif response.status_code == 429:
-            print(f"To many API calls, backing off for {SNYK_API_RATE_LIMIT_BACKOFF_SECONDS} seconds")
-            time.sleep(SNYK_API_RATE_LIMIT_BACKOFF_SECONDS)
+        except requests.ConnectTimeout:
             retry += 1
             if retry > MAX_RETRIES:
                 break
+            print("ERROR: ConnectionTimeout, trying again")
+        except requests.ReadTimeout:
+            retry += 1
+            if retry > MAX_RETRIES:
+                break
+            print("ERROR ReadTimeout, trying again")
+        except requests.Timeout:
+            retry += 1
+            if retry > MAX_RETRIES:
+                break
+            print("ERROR: Timeout, trying again")
+        except requests.ConnectionError:
+            retry += 1
+            if retry > MAX_RETRIES:
+                break
+            print("ERROR: ConnectionError, trying again")
         else:
-            print(f"Could not complete request {target_name}, reason: {response.status_code}")
-            break
+            if response.status_code == 200:
+                response_json = json.loads(response.content)
+                if (len(response_json['data']) > 0):
+                    target_id = response_json['data'][0]['id']
+                else:
+                    print(f"Did not find a target with name: {target_name}")
+                break
+            elif response.status_code == 429:
+                print(f"To many API calls, backing off for {SNYK_API_RATE_LIMIT_BACKOFF_SECONDS} seconds")
+                time.sleep(SNYK_API_RATE_LIMIT_BACKOFF_SECONDS)
+                retry += 1
+                if retry > MAX_RETRIES:
+                    break
+            else:
+                print(f"Could not complete request {target_name}, reason: {response.status_code}")
+                break
 
     return target_id
+
+def get_all_non_empty_targets(snyk_token, org_id, verbose=False):
+    retry = 0
+
+    targets = []
+
+    headers = {
+        'Authorization': f'token {snyk_token}'
+    }
+
+    url = f"{SNYK_REST_API_BASE_URL}/orgs/{org_id}/targets?version={SNYK_REST_API_VERSION}&limit=100"
+
+    while True:
+        try:
+            response = requests.request(
+                'GET',
+                url,
+                headers=headers,
+                timeout=SNYK_API_TIMEOUT_DEFAULT)
+
+        except requests.ConnectTimeout:
+            retry += 1
+            if retry > MAX_RETRIES:
+                break
+            print("ERROR: ConnectionTimeout, trying again")
+        except requests.ReadTimeout:
+            retry += 1
+            if retry > MAX_RETRIES:
+                break
+            print("ERROR ReadTimeout, trying again")
+        except requests.Timeout:
+            retry += 1
+            if retry > MAX_RETRIES:
+                break
+            print("ERROR: Timeout, trying again")
+        except requests.ConnectionError:
+            retry += 1
+            if retry > MAX_RETRIES:
+                break
+            print("ERROR: ConnectionError, trying again")
+        else:
+            if response.status_code == 200:
+                response_json = json.loads(response.content)
+
+                if 'data' in response_json:
+                    targets = targets + response_json['data']
+                if 'next' not in response_json['links'] or response_json['links']['next'] == '':
+                    break
+                url = f"{SNYK_REST_API_BASE_URL}{response_json['links']['next']}"
+            elif response.status_code == 429:
+                print(f"To many API calls, backing off for {SNYK_API_RATE_LIMIT_BACKOFF_SECONDS} seconds")
+                time.sleep(SNYK_API_RATE_LIMIT_BACKOFF_SECONDS)
+                retry += 1
+                if retry > MAX_RETRIES:
+                    break
+            else:
+                print(f"Could not complete request, reason: {response.status_code}")
+                break
+
+    return targets
 
 def get_projects_from_target(snyk_token, org_id, target_id, verbose=False):
     project_ids = []

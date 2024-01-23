@@ -226,6 +226,51 @@ def migrate_projects(
 
     return
 
+@app.command('extract-remaining-targets')
+def extract_remaining_targets(
+    snyk_token:
+        Annotated[
+            str,
+            typer.Argument(
+                help='Snyk API token',
+                envvar='SNYK_TOKEN')],
+    source_org:
+        Annotated[
+            str,
+            typer.Argument(
+                help='Group ID in Snyk',
+                envvar='SOURCE_ORG')],
+    csv_path:
+        Annotated[
+            str,
+            typer.Option(
+                help='Path to CSV file that will be used to created JSON org structure',
+                envvar='CSV_PATH')],
+    output_csv_path:
+        Annotated[
+            str,
+            typer.Option(
+                help="File to output remaining entries to")] = None):
+
+    targets = snyk.get_all_non_empty_targets(snyk_token, source_org)
+
+    with open(output_csv_path, 'w') as output_csv_file:
+        output_csv_writer = csv.writer(output_csv_file)
+        output_csv_writer.writerow(["Tech Org","Asset ID","Asset Name","Repo URL","Project Name","Repo Count"])
+
+    with open(csv_path) as csv_file:
+        csv_reader = csv.reader(csv_file)
+
+        # skip the header
+        next(csv_reader, None)
+
+        for row in csv_reader:
+            for target in targets:
+                if (row[COL_TARGET_NAME] == target['attributes']['displayName']):
+                    with open(output_csv_path, 'a') as output_csv_file:
+                        output_csv_writer = csv.writer(output_csv_file)
+                        output_csv_writer.writerow(row)
+
 @app.callback()
 def main(verbose: bool = False):
     if verbose:
